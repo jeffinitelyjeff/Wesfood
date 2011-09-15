@@ -6,30 +6,71 @@ require 'hpricot'
 
 WESWINGS_URL = 'http://www.weswings.com'
 
-def download_pdf
+def download_pdfs
 
   doc = open(WESWINGS_URL) { |f| Hpricot(f) }
   pdfs = (doc/"table#table2 td:first-child > p a").collect do |e|
     e.attributes['href']
   end.reject do |p|
-    p == "" || File.exists?("pdf/weswings-#{p}")
+    p == ""
+  end.collect do |p|
+    p.sub '.pdf', ''
   end
 
   Net::HTTP.start("weswings.com") do |http|
-    pdfs.each do |pdf|
+    pdfs.reject {|pdf| File.exists?("pdf/weswings-#{pdf}.pdf")}.each do |pdf|
       puts "DOWNLOADING PDF"
-      resp = http.get("/#{pdf}")
-      open("pdf/weswings-#{pdf}", "wb") do |file|
+      resp = http.get("/#{pdf}.pdf")
+      open("pdf/weswings-#{pdf}.pdf", "wb") do |file|
         file.write resp.body
       end
     end
   end
 
-  return pdfs
+  return pdfs.collect {|pdf| "weswings-#{pdf}"}
 end
 
-def pdf_to_txt(n)
-  Docsplit.extract_text(Dir["pdf/#{n}.pdf"], :output => 'txt/') unless File.exists? n
+def pdf_to_txt(ns)
+  ns.each do |n|
+    if !File.exists? "txt/#{n}.txt"
+      # use docsplit to convert to text
+      puts "CONVERTING PDF TO TXT"
+      Docsplit.extract_text(Dir["pdf/#{n}.pdf"], :output => 'txt/')
+
+      # read in text output
+      ls = []
+      File.open("txt/#{n}.txt", "r") do |f|
+        while l = f.gets do ls << l end
+      end
+
+      # potentially filter out some garbage lines
+      ls.reject! {|l| l.length <= 2}
+
+      puts "CLEANING UP"
+
+      # fix up some potentially mangled "Lunch Specials" and "Dinner Entrees"
+      ls.collect! do |l|
+        if str_just_contains(l, "Lunch Specials\n")
+          "Lunch Specials"
+        elsif str_just_contains(l, "Dinner Entrees\n")
+          "Dinner Entrees"
+        else
+          l
+        end
+      end
+
+      # write back the cleaned up text
+      File.open("txt/#{n}'txt", "w") do |f|
+        while l = ls.shift do f.write l end
+      end
+    end
+  end
+end
+
+# check if str is composed entirely of characters in the str chars
+def str_just_contains(str, chars)
+  puts str.inspect, chars.inspect
+  str.each_char.all? {|c| chars.include? c}
 end
 
 def gather_items_from_txt(n)
@@ -49,6 +90,7 @@ def gather_items_from_txt(n)
         if l == "Dinner Entrees\n" || l == "Lunch Specials\n"
           in_dinner = l == "Dinner Entrees\n"
         elsif l == "\n"
+          puts entree
           item = menu_item entree
           item[:meal] = in_dinner ? :dinner : :lunch
           items << item
@@ -75,12 +117,28 @@ def menu_item(lines)
   }
 end
 
+def parse_txt(ns)
+  ns.each do |n|
+    items = gather_items_from_txt n
+    File.open("parsed/#{n}.txt", "w") do |f|
+      puts "DUMPING PARSED TXT"
+      f.write("### Lunch")
+      items.select {|item| item[:meal] == :lunch}.each do |item|
+        f.write "#### #{item[:name]} (#{item[:price]})"
+        f.write item[:desc]
+      end
+      f.write("### Dinner")
+      items.select {|item| item[:meal] == :dinner}.each do |item|
+        f.write "#### #{item[:name]} (#{item[:price]})"
+        f.write item[:desc]
+      end
+    end
+  end
+end
+
 # FIXME - pull PDF, set PDF filename
 # name = 'weswings-9-12-11'
-names = download_pdf
-pdf_to_txt name
-items = gather_items_from_txt name
-items.each {|i| puts "#{i[:name]} ($#{i[:price]}) for #{i[:meal]}"}
-
-
-
+names = download_pdfs
+puts names
+pdf_to_txt names
+parse_txt names
