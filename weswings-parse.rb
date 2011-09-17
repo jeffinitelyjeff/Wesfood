@@ -38,7 +38,7 @@ end
 
 # Heuristic to see if `str` is the first line of a menu item.
 def item_first_line(str)
-  str.include? '.. $'
+  return str.include? '.. $'
 end
 
 
@@ -154,7 +154,7 @@ names.each do |n|
     # We should only insert a newline if one didn't already exist.
     has_space = i == 0 || ls[i-1] == "\n" || ls[i-1].include?("\n\n")
 
-    new_ls << "\n" if !has_space && item_first_line(ls[i])
+    new_ls << "\n" if !has_space && (item_first_line(ls[i]) || ls[i].include?("Dinner"))
     new_ls << ls[i]
   end
   ls = new_ls
@@ -164,7 +164,7 @@ names.each do |n|
   (0..(ls.length-1)).each do |i|
     is_empty = ls[i] == "\n"
 
-    if !is_empty || (i != ls.length-1 && item_first_line(ls[i+1]))
+    if !is_empty || (i != ls.length-1 && (item_first_line(ls[i+1]) || ls[i+1].include?("Dinner")))
       new_ls << ls[i]
     end
   end
