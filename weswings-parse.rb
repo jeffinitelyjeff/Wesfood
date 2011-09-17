@@ -5,12 +5,15 @@ require 'open-uri'
 require 'hpricot'
 
 WESWINGS_URL = 'http://www.weswings.com'
+CLEAR = true
 
 # Check if `str` is composed entirely of characters in the string `chars`
 def str_just_contains(str, chars)
-  str.each_char.all? {|c| chars.include? c}
+  str.length > 2 && str.each_char.all? {|c| chars.include? c}
 end
 
+# Clear previously downloaded PDFs if `CLEAR` is enabled.
+File.delete *Dir['pdf/weswings/*']
 
 #### Download PDFs from WesWings
 
@@ -70,18 +73,22 @@ names.each do |n|
 
   # Remove short lines; sometimes the text is formatted strangely and creates
   # single-character artifact lines.
-  ls.reject! {|l| l.length <= 2}
+  ls = ls.select {|l| l.length > 2 || l == "\n"}
+
+  # Remove day-of-the-week header
+  ls.reject! {|l| ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY',
+                   'SATURDAY', 'SUNDAY'].any? {|d| l.index(d) == 0}}
 
   # Clean up lines that look mostly like "Lunch Specials" or "Dinner Entrees".
   # This is necessary in case the weird formatting moved some letters to
-  # their own lines.
+  # their own line.
   ls.collect! do |l|
     if str_just_contains(l, "Lunch Specials\n")
-      return "Lunch Specials\n"
+      "Lunch Specials\n"
     elsif str_just_contains(l, "Dinner Entrees\n")
-      return "Dinner Entrees\n"
+      "Dinner Entrees\n"
     else
-      return l
+      l
     end
   end
 
@@ -105,7 +112,7 @@ end
 #       in_dinner = false
 #       entree = []
 
-#       ls.reject do |l|
+#       ls.reject do |l| && l != "\n"}
 #         ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
 #          'Sunday'].collect{|d| d + "\n"}.include? l
 #       end.each do |l|
