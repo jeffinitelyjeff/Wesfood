@@ -39,15 +39,6 @@ end
 # Heuristic to see if `str` is the first line of a menu item.
 def item_first_line(str)
   str.include? '.. $'
-
-  # has_dollar = str.include? '. $'
-
-  # if has_dollar
-  #   s = str.split('$')[-1].split("\n")[0]
-  #   has_price = s.to_f.to_s == s
-  # end
-
-  # return has_dollar && has_price
 end
 
 
