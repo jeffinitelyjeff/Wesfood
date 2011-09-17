@@ -23,10 +23,10 @@ names = links.reject {|l| p == ""}.collect {|l| l.sub '.pdf', ''}
 
 # Download the PDFs
 Net::HTTP.start("weswings.com") do |http|
-  names.reject {|n| File.exists? "pdf/weswings-#{n}.pdf"}.each do |n|
-    puts "Downloading PDF - #{n}.pdf"
+  names.reject {|n| File.exists? "pdf/weswings/#{n}.pdf"}.each do |n|
+    puts "Downloading PDF - pdf/weswings/#{n}.pdf"
     resp = http.get("/#{n}.pdf")
-    open("pdf/weswings-#{n}.pdf", "wb") do |file|
+    open("pdf/weswings/#{n}.pdf", "wb") do |file|
       file.write resp.body
     end
   end
@@ -34,21 +34,27 @@ end
 
 #### Dump the TXT versions of PDFs
 
-# Delete all previously generated .txt files.
-File.delete *Dir['txt/*']
+# Delete the relevant previously generated .txt files.
+names.each {|n| File.delete "txt/weswings/dirty/#{n}.txt"}
 
 # Generate dirty .txt dumps for the PDFs downloaded
 names.each do |n|
-  puts "weswings-#{n}.pdf --> weswings-#{n}.txt"
-  Docsplit.extract_text Dir["pdf/weswings-#{n}.pdf"], :output => 'txt/'
+  puts "#{n}.pdf --> #{n}.txt"
+  Docsplit.extract_text Dir["pdf/weswings/#{n}.pdf"], :output => 'txt/weswings/dirty/'
 end
 
 # Clean up the dirty .txt dumps.
+
+#### Generate cleaned up TXT files
+
+# Delete the relevant previously generated clean .txt files.
+names.each {|n| File.delete "txt/weswings/clean/#{n}.txt"}
+
 names.each do |n|
 
   # Read in the dirty file.
   ls = []
-  File.open "txt/weswings-#{n}.txt", "r" do |f|
+  File.open "txt/weswings/dirty/#{n}.txt", "r" do |f|
     while l = f.gets
       ls << l
     end
@@ -72,7 +78,7 @@ names.each do |n|
   end
 
   # Write the cleaned-up version.
-  File.open "txt/weswings-clean-#{n}.txt", "w" do |f|
+  File.open "txt/weswings/clean/#{n}.txt", "w" do |f|
     while l = ls.shift
       f.write l
     end
