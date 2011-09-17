@@ -8,7 +8,6 @@ WESWINGS_URL = 'http://www.weswings.com'
 
 # Check if `str` is composed entirely of characters in the string `chars`
 def str_just_contains(str, chars)
-  puts str.inspect, chars.inspect
   str.each_char.all? {|c| chars.include? c}
 end
 
@@ -16,14 +15,17 @@ end
 #### Download PDFs from WesWings
 
 # Load the WesWings page, get all links in the menu area, filter out empty
-# links and remove the .pdf extensions.
-doc = open WESWINGS_URL {|f| Hpricot f}
+# links and remove the .pdf extensions. Also filter out any PDFs we already
+# have.
+doc = open(WESWINGS_URL) {|f| Hpricot f}
 links = (doc/"#table2 td:first-child > p a").collect {|e| e.attributes['href']}
-names = links.reject {|l| p == ""}.collect {|l| l.sub '.pdf', ''}
+names = links.reject {|l| l == ""}.collect {|l| l.sub '.pdf', ''}.reject do |n|
+  File.exist? "pdf/weswings/#{n}.pdf"
+end
 
 # Download the PDFs
 Net::HTTP.start("weswings.com") do |http|
-  names.reject {|n| File.exists? "pdf/weswings/#{n}.pdf"}.each do |n|
+  names.each do |n|
     puts "Downloading PDF - pdf/weswings/#{n}.pdf"
     resp = http.get("/#{n}.pdf")
     open("pdf/weswings/#{n}.pdf", "wb") do |file|
@@ -35,12 +37,15 @@ end
 #### Dump the TXT versions of PDFs
 
 # Delete the relevant previously generated .txt files.
-names.each {|n| File.delete "txt/weswings/dirty/#{n}.txt"}
+names.each do |n|
+  f = "txt/weswings/dirty/#{n}.txt"
+  File.delete f if File.exist? f
+end
 
 # Generate dirty .txt dumps for the PDFs downloaded
 names.each do |n|
-  puts "#{n}.pdf --> #{n}.txt"
   Docsplit.extract_text Dir["pdf/weswings/#{n}.pdf"], :output => 'txt/weswings/dirty/'
+  puts "pdf/weswings/#{n}.pdf --> txt/weswings/dirty/#{n}.txt"
 end
 
 # Clean up the dirty .txt dumps.
@@ -48,7 +53,10 @@ end
 #### Generate cleaned up TXT files
 
 # Delete the relevant previously generated clean .txt files.
-names.each {|n| File.delete "txt/weswings/clean/#{n}.txt"}
+names.each do |n|
+  f = "txt/weswings/clean/#{n}.txt"
+  File.delete f if File.exist? f
+end
 
 names.each do |n|
 
@@ -62,15 +70,15 @@ names.each do |n|
 
   # Remove short lines; sometimes the text is formatted strangely and creates
   # single-character artifact lines.
-  ls.reject! {l| l.lenght <= 2}
+  ls.reject! {|l| l.length <= 2}
 
   # Clean up lines that look mostly like "Lunch Specials" or "Dinner Entrees".
   # This is necessary in case the weird formatting moved some letters to
   # their own lines.
   ls.collect! do |l|
-    if str_just_contains l, "Lunch Specials\n"
+    if str_just_contains(l, "Lunch Specials\n")
       return "Lunch Specials\n"
-    elsif str_just_contains l, "Dinner Entrees\n"
+    elsif str_just_contains(l, "Dinner Entrees\n")
       return "Dinner Entrees\n"
     else
       return l
@@ -83,39 +91,8 @@ names.each do |n|
       f.write l
     end
   end
-end
-  if !File.exists? "txt/#{n}.txt"
-    # use docsplit to convert to text
-    puts "#{n}.txt --> #{n}.pdf"
-    Docsplit.extract_text(Dir["pdf/#{n}.pdf"], :output => 'txt/')
 
-    # read in text output
-    ls = []
-    File.open("txt/#{n}.txt", "r") do |f|
-      while l = f.gets do ls << l end
-    end
-
-    # potentially filter out some garbage lines
-    ls.reject! {|l| l.length <= 2}
-
-    puts "CLEANING UP"
-
-    # fix up some potentially mangled "Lunch Specials" and "Dinner Entrees"
-    ls.collect! do |l|
-      if str_just_contains(l, "Lunch Specials\n")
-        return "Lunch Specials"
-      elsif str_just_contains(l, "Dinner Entrees\n")
-        return "Dinner Entrees"
-      else
-        return l
-      end
-    end
-
-    # write back the cleaned up text
-    File.open("txt/#{n}'txt", "w") do |f|
-      while l = ls.shift do f.write l end
-    end
-  end
+  puts "txt/weswings/dirty/#{n}.txt --> txt/weswings/clean/#{n}.txt"
 end
 
 # def gather_items_from_txt(n)
