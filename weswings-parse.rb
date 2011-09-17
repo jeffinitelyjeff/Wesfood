@@ -19,7 +19,7 @@ def download_pdfs
 
   Net::HTTP.start("weswings.com") do |http|
     pdfs.reject {|pdf| File.exists?("pdf/weswings-#{pdf}.pdf")}.each do |pdf|
-      puts "DOWNLOADING PDF"
+      puts "Downloading PDF - #{pdf}.pdf"
       resp = http.get("/#{pdf}.pdf")
       open("pdf/weswings-#{pdf}.pdf", "wb") do |file|
         file.write resp.body
@@ -34,7 +34,7 @@ def pdf_to_txt(ns)
   ns.each do |n|
     if !File.exists? "txt/#{n}.txt"
       # use docsplit to convert to text
-      puts "CONVERTING PDF TO TXT"
+      puts "#{n}.txt --> #{n}.pdf"
       Docsplit.extract_text(Dir["pdf/#{n}.pdf"], :output => 'txt/')
 
       # read in text output
@@ -51,11 +51,11 @@ def pdf_to_txt(ns)
       # fix up some potentially mangled "Lunch Specials" and "Dinner Entrees"
       ls.collect! do |l|
         if str_just_contains(l, "Lunch Specials\n")
-          "Lunch Specials"
+          return "Lunch Specials"
         elsif str_just_contains(l, "Dinner Entrees\n")
-          "Dinner Entrees"
+          return "Dinner Entrees"
         else
-          l
+          return l
         end
       end
 
