@@ -3,69 +3,114 @@ require 'Docsplit'
 require 'net/http'
 require 'open-uri'
 require 'hpricot'
+require 'fileutils'
+
+
+## Some constants
 
 WESWINGS_URL = 'http://www.weswings.com'
-CLEAR = true
+CLEAR = false
+DOWNLOAD = false
+DOC_DIR = 'ww'
+PDF_DIR = "#{DOC_DIR}/pdf"
+DIRTY_DIR = "#{DOC_DIR}/dirty-txt"
+CLEAN_DIR = "#{DOC_DIR}/clean-txt"
+
+
+## Some methods
+
+def pdf_loc n
+  "#{PDF_DIR}/#{n}.pdf"
+end
+
+def dirty_loc n
+  "#{DIRTY_DIR}/#{n}.txt"
+end
+
+def clean_loc n
+  "#{CLEAN_DIR}/#{n}.txt"
+end
 
 # Check if `str` is composed entirely of characters in the string `chars`
 def str_just_contains(str, chars)
-  str.length > 2 && str.each_char.all? {|c| chars.include? c}
+  str.each_char.all? {|c| chars.include? c}
 end
 
-# Clear previously downloaded PDFs if `CLEAR` is enabled.
-File.delete *Dir['pdf/weswings/*']
+
+#### Set up directory structure
+
+# Remove all files if `CLEAR` is enabled
+if File.exist?(DOC_DIR) && CLEAR
+  FileUtils.rm_rf DOC_DIR
+end
+
+# Create necessary directories
+[DOC_DIR, PDF_DIR, DIRTY_DIR, CLEAN_DIR].each do |d|
+  Dir.mkdir d unless File.exist? d
+end
+
 
 #### Download PDFs from WesWings
 
-# Load the WesWings page, get all links in the menu area, filter out empty
-# links and remove the .pdf extensions. Also filter out any PDFs we already
-# have.
-doc = open(WESWINGS_URL) {|f| Hpricot f}
-links = (doc/"#table2 td:first-child > p a").collect {|e| e.attributes['href']}
-names = links.reject {|l| l == ""}.collect {|l| l.sub '.pdf', ''}.reject do |n|
-  File.exist? "pdf/weswings/#{n}.pdf"
-end
+if DOWNLOAD
 
-# Download the PDFs
-Net::HTTP.start("weswings.com") do |http|
-  names.each do |n|
-    puts "Downloading PDF - pdf/weswings/#{n}.pdf"
-    resp = http.get("/#{n}.pdf")
-    open("pdf/weswings/#{n}.pdf", "wb") do |file|
-      file.write resp.body
+  # Load the WesWings page, get all links in the menu area, filter out empty
+  # links and remove the .pdf extensions.
+  doc = open(WESWINGS_URL) {|f| Hpricot f}
+  links = (doc/"#table2 td:first-child > p a").collect do |e|
+    e.attributes['href']
+  end
+  names = links.reject {|l| l == ""}.collect do |l|
+    l.sub '.pdf', ''
+  end.reject do |n|
+    File.exist? "#{PDF_DIR}/#{n}.pdf"
+  end
+
+  # Download the PDFs
+  Net::HTTP.start("weswings.com") do |http|
+    names.each do |n|
+      puts "Downloading PDF --> #{pdf_loc n}"
+      resp = http.get("/#{n}.pdf")
+      open pdf_loc(n), 'wb' do |file|
+        file.write resp.body
+      end
     end
   end
+
+else
+
+  names = Dir["#{PDF_DIR}/*"].collect do |n|
+    n.split('/').pop.sub '.pdf', ''
+  end
+
 end
 
 #### Dump the TXT versions of PDFs
 
 # Delete the relevant previously generated .txt files.
 names.each do |n|
-  f = "txt/weswings/dirty/#{n}.txt"
-  File.delete f if File.exist? f
+  File.delete dirty_loc(n) if File.exist? dirty_loc(n)
 end
 
 # Generate dirty .txt dumps for the PDFs downloaded
 names.each do |n|
-  Docsplit.extract_text Dir["pdf/weswings/#{n}.pdf"], :output => 'txt/weswings/dirty/'
-  puts "pdf/weswings/#{n}.pdf --> txt/weswings/dirty/#{n}.txt"
+  Docsplit.extract_text Dir[pdf_loc n], :output => DIRTY_DIR
+  puts "#{pdf_loc n} --> #{dirty_loc n}"
 end
 
-# Clean up the dirty .txt dumps.
 
 #### Generate cleaned up TXT files
 
 # Delete the relevant previously generated clean .txt files.
 names.each do |n|
-  f = "txt/weswings/clean/#{n}.txt"
-  File.delete f if File.exist? f
+  File.delete clean_loc(n) if File.exist? clean_loc(n)
 end
 
 names.each do |n|
 
   # Read in the dirty file.
   ls = []
-  File.open "txt/weswings/dirty/#{n}.txt", "r" do |f|
+  File.open dirty_loc(n), 'r' do |f|
     while l = f.gets
       ls << l
     end
@@ -73,6 +118,8 @@ names.each do |n|
 
   # Remove short lines; sometimes the text is formatted strangely and creates
   # single-character artifact lines.
+  # FIXME: Ruby 1.8.7 doesn't have Array::select!, but should be moving to
+  # 1.9.2 anyway.
   ls = ls.select {|l| l.length > 2 || l == "\n"}
 
   # Remove day-of-the-week header
@@ -83,9 +130,13 @@ names.each do |n|
   # This is necessary in case the weird formatting moved some letters to
   # their own line.
   ls.collect! do |l|
-    if str_just_contains(l, "Lunch Specials\n")
+    if l == "\n"
+      "\n"
+    elsif str_just_contains l, "Lunch Specials\n"
       "Lunch Specials\n"
-    elsif str_just_contains(l, "Dinner Entrees\n")
+    elsif str_just_contains l, "Breakfast Specials\n"
+      "Breakfast Specials\n"
+    elsif str_just_contains l, "Dinner Entrees\n"
       "Dinner Entrees\n"
     else
       l
@@ -93,13 +144,13 @@ names.each do |n|
   end
 
   # Write the cleaned-up version.
-  File.open "txt/weswings/clean/#{n}.txt", "w" do |f|
+  File.open clean_loc(n), 'w' do |f|
     while l = ls.shift
       f.write l
     end
   end
 
-  puts "txt/weswings/dirty/#{n}.txt --> txt/weswings/clean/#{n}.txt"
+  puts "#{dirty_loc n} --> #{clean_loc n}"
 end
 
 # def gather_items_from_txt(n)
