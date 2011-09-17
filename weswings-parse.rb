@@ -36,6 +36,20 @@ def str_just_contains(str, chars)
   str.each_char.all? {|c| chars.include? c}
 end
 
+# Heuristic to see if `str` is the first line of a menu item.
+def item_first_line(str)
+  str.include? '.. $'
+
+  # has_dollar = str.include? '. $'
+
+  # if has_dollar
+  #   s = str.split('$')[-1].split("\n")[0]
+  #   has_price = s.to_f.to_s == s
+  # end
+
+  # return has_dollar && has_price
+end
+
 
 #### Set up directory structure
 
@@ -128,20 +142,42 @@ names.each do |n|
 
   # Clean up lines that look mostly like "Lunch Specials" or "Dinner Entrees".
   # This is necessary in case the weird formatting moved some letters to
-  # their own line.
+  # their own line. Also add an extra newline to separate them from the items.
   ls.collect! do |l|
     if l == "\n"
       "\n"
     elsif str_just_contains l, "Lunch Specials\n"
-      "Lunch Specials\n"
+      "Lunch Specials\n\n"
     elsif str_just_contains l, "Breakfast Specials\n"
-      "Breakfast Specials\n"
+      "Breakfast Specials\n\n"
     elsif str_just_contains l, "Dinner Entrees\n"
-      "Dinner Entrees\n"
+      "Dinner Entrees\n\n"
     else
       l
     end
   end
+
+  # Ensure that there is an empty line between each menu item.
+  new_ls = []
+  (0..(ls.length-1)).each do |i|
+    # We should only insert a newline if one didn't already exist.
+    has_space = i == 0 || ls[i-1] == "\n" || ls[i-1].include?("\n\n")
+
+    new_ls << "\n" if !has_space && item_first_line(ls[i])
+    new_ls << ls[i]
+  end
+  ls = new_ls
+
+  # Ensure there aren't any extra empty lines in the middle of items.
+  new_ls = []
+  (0..(ls.length-1)).each do |i|
+    is_empty = ls[i] == "\n"
+
+    if !is_empty || (i != ls.length-1 && item_first_line(ls[i+1]))
+      new_ls << ls[i]
+    end
+  end
+  ls = new_ls
 
   # Write the cleaned-up version.
   File.open clean_loc(n), 'w' do |f|
