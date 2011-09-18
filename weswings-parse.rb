@@ -43,7 +43,17 @@ end
 
 # Heuristic to see if `str` is the first line of a menu item.
 def item_first_line(str)
-  return str.include? '.. $'
+  options = [
+    # The most common form is:
+    # Name Name Name - ............. $XX.xx
+    str.include?('.. $'),
+    # Sometimes, it will be formated like:
+    # Name Name Name - description description $XX.xx
+    str.include?(' - ') &&
+      str.include?('$') &&
+      str.split('$')[-1].strip.to_f.to_s == str.split('$')[-1].strip
+  ]
+  return options.any? {|o| o}
 end
 
 
@@ -211,6 +221,9 @@ names.each do |n|
     if l.include?("Dinner Entrees")
       in_dinner = true
     elsif !item_ls.empty? && l == "\n"
+      # Strip apart menu into component parts. This shouldn't need to be
+      # modified too much; should strive to fix things at the
+      # dirty -> clean stage.
       items << {
         :desc => ([item_ls[0].squeeze('.').split(' - ')[-1].split(' . ')[0]] +
                   item_ls[1..-1]).join(' ').gsub(/\n/, ' ').squeeze(' ').strip,
