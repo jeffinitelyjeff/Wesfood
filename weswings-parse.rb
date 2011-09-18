@@ -15,6 +15,7 @@ DOC_DIR = 'ww'
 PDF_DIR = "#{DOC_DIR}/pdf"
 DIRTY_DIR = "#{DOC_DIR}/dirty-txt"
 CLEAN_DIR = "#{DOC_DIR}/clean-txt"
+BLOG_DIR = "#{DOC_DIR}/blog-txt"
 
 
 ## Some methods
@@ -29,6 +30,10 @@ end
 
 def clean_loc n
   "#{CLEAN_DIR}/#{n}.txt"
+end
+
+def blog_loc n
+  "#{BLOG_DIR}/#{n}.txt"
 end
 
 # Check if `str` is composed entirely of characters in the string `chars`
@@ -180,72 +185,61 @@ names.each do |n|
   puts "#{dirty_loc n} --> #{clean_loc n}"
 end
 
-# def gather_items_from_txt(n)
-#   begin
-#     File.open("txt/#{n}.txt", "r") do |f|
-#       ls = []
-#       while l = f.gets do ls << l end
 
-#       items = []
-#       in_dinner = false
-#       entree = []
+#### Generate formatted versions of the menu for the tumblr.
 
-#       ls.reject do |l| && l != "\n"}
-#         ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
-#          'Sunday'].collect{|d| d + "\n"}.include? l
-#       end.each do |l|
-#         if l == "Dinner Entrees\n" || l == "Lunch Specials\n"
-#           in_dinner = l == "Dinner Entrees\n"
-#         elsif l == "\n"
-#           puts entree
-#           item = menu_item entree
-#           item[:meal] = in_dinner ? :dinner : :lunch
-#           items << item
-#           entree = []
-#         else
-#           entree << l
-#         end
-#       end
+# Delete the relevant previously generated blog .txt files.
+names.each do |n|
+  File.delete blog_loc(n) if File.exist? blog_loc(n)
+end
 
-#       return items
-#     end
-#   rescue IOError => err
-#     puts "Exception: #{err}"
-#   end
-# end
+names.each do |n|
 
-# def menu_item(lines)
-#   desc = ([lines[0].squeeze('.').split(' - ')[1].split(' . ')[0]] +
-#           lines[1..-1]).join(' ').gsub(/\n/, ' ').squeeze(' ').strip
-#   return {
-#     :name => lines[0].split(' - ')[0],
-#     :price => lines[0].split('$')[1].to_f,
-#     :desc => desc
-#   }
-# end
+  # Read in the clean txt file.
+  ls = []
+  File.open clean_loc(n), 'r' do |f|
+    while l = f.gets
+      ls << l
+    end
+  end
 
-# def parse_txt(ns)
-#   ns.each do |n|
-#     items = gather_items_from_txt n
-#     File.open("parsed/#{n}.txt", "w") do |f|
-#       puts "DUMPING PARSED TXT"
-#       f.write("### Lunch")
-#       items.select {|item| item[:meal] == :lunch}.each do |item|
-#         f.write "#### #{item[:name]} (#{item[:price]})"
-#         f.write item[:desc]
-#       end
-#       f.write("### Dinner")
-#       items.select {|item| item[:meal] == :dinner}.each do |item|
-#         f.write "#### #{item[:name]} (#{item[:price]})"
-#         f.write item[:desc]
-#       end
-#     end
-#   end
-# end
+  # Get an array of menu item dicts
+  items = []
+  in_dinner = false
+  item_ls = []
+  ls.each do |l|
+    if l.include?("Dinner Entrees")
+      in_dinner = true
+    elsif !item_ls.empty? && l == "\n"
+      items << {
+        :desc => ([item_ls[0].squeeze('.').split(' - ')[-1].split(' . ')[0]] +
+                  item_ls[1..-1]).join(' ').gsub(/\n/, ' ').squeeze(' ').strip,
+        :name => item_ls[0].split(' - ')[0],
+        :price => item_ls[0].split('$')[1].to_f,
+        :meal => in_dinner ? :dinner : :lunch
+      }
+      item_ls.clear
+    elsif l != "\n" &&
+        !l.include?("Dinner Entrees") &&
+        !l.include?("Lunch Specials") &&
+        !l.include?("Breakfast Specials")
+      item_ls << l
+    end
+  end
 
-# # FIXME - pull PDF, set PDF filename
-# # name = 'weswings-9-12-11'
-# names = download_pdfs
-# puts names
-# pdf_to_txt names
-# parse_txt names
+  lunch = items.select {|i| i[:meal] == :lunch}
+  dinner = items.select {|i| i[:meal] == :dinner}
+  item_print = proc do |f, item|
+    f.write "## #{item[:name]} (#{item[:price]})\n"
+    f.write "#{item[:desc]}\n\n"
+  end
+
+  File.open blog_loc(n), 'w' do |f|
+    f.write "### Lunch\n\n"
+    lunch.each {|item| item_print.call(f, item)}
+    f.write "### Dinner\n\n"
+    dinner.each {|item| item_print.call(f, item)}
+  end
+end
+
+
