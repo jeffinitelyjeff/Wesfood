@@ -13,6 +13,7 @@ CLEAR = false
 DOWNLOAD = false
 DOC_DIR = 'ww'
 PDF_DIR = "#{DOC_DIR}/pdf"
+ARCHIVE_DIR = "#{DOC_DIR}/pdf-archive"
 DIRTY_DIR = "#{DOC_DIR}/dirty-txt"
 CLEAN_DIR = "#{DOC_DIR}/clean-txt"
 BLOG_DIR = "#{DOC_DIR}/blog-txt"
@@ -22,6 +23,10 @@ BLOG_DIR = "#{DOC_DIR}/blog-txt"
 
 def pdf_loc n
   "#{PDF_DIR}/#{n}.pdf"
+end
+
+def archive_loc n
+  "#{ARCHIVE_DIR}/#{n}.pdf"
 end
 
 def dirty_loc n
@@ -35,6 +40,7 @@ end
 def blog_loc n
   "#{BLOG_DIR}/#{n}.txt"
 end
+
 
 # Check if `str` is composed entirely of characters in the string `chars`
 def str_just_contains(str, chars)
@@ -61,7 +67,7 @@ end
 
 # Remove all files if `CLEAR` is enabled
 if File.exist?(DOC_DIR) && CLEAR
-  FileUtils.rm_rf DOC_DIR
+  [PDF_DIR, DIRTY_DIR, CLEAN_DIR, BLOC_DIR].each {|d| FileUtils.rm_rf d}
 end
 
 # Create necessary directories
@@ -89,11 +95,20 @@ if DOWNLOAD
   # Download the PDFs
   Net::HTTP.start("weswings.com") do |http|
     names.each do |n|
-      puts "Downloading PDF --> #{pdf_loc n}"
       resp = http.get("/#{n}.pdf")
+
+      puts "Downloading PDF --> #{pdf_loc n}"
       open pdf_loc(n), 'wb' do |file|
         file.write resp.body
       end
+
+      if !File.exist? archive_loc(n)
+        puts "Storing archive --> #{archive_loc n}"
+        open archive_loc(n), 'wb' do |file|
+          file.write resp.body
+        end
+      end
+
     end
   end
 
