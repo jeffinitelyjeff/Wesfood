@@ -5,6 +5,7 @@ require 'open-uri'
 require 'hpricot'
 require 'fileutils'
 require 'pony'
+require 'OAuth'
 
 require '../secrets'
 
@@ -227,14 +228,14 @@ names.each do |n|
 end
 
 
-#### Generate formatted versions of the menu for the tumblr.
+#### Generate formatted versions of the menu for the tumblr, post on
 
 # Delete the relevant previously generated blog .txt files.
 names.each do |n|
   File.delete blog_loc(n) if File.exist? blog_loc(n)
 end
 
-names.each do |n|
+names[0..0].each do |n|
 
   # Read in the clean txt file.
   ls = []
@@ -289,29 +290,22 @@ names.each do |n|
   end
   puts "#{clean_loc n} --> #{blog_loc n}"
 
-  # Fire off confirmation email.
-  if EMAIL
-    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => contents, :via => :smtp, :via_options => {
-      :address => 'smtp.gmail.com',
-      :port => '587',
-      :enable_starttls_auto => true,
-      :user_name => 'rubergly',
-      :password => GMAIL_PWORD,
-      :authentication => :plain,
-      :domain => "localhost.localdomain"
-    })
-    puts "Emailed: #{email_subject n}"
-  end
+  # Fire off notification email.
+  # Redundant with IFTTT.
+  # if EMAIL
+  #   Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => "New Wesfood menu posted\n\n" + contents, :via => :smtp, :via_options => {
+  #     :address => 'smtp.gmail.com',
+  #     :port => '587',
+  #     :enable_starttls_auto => true,
+  #     :user_name => 'rubergly',
+  #     :password => GMAIL_PWORD,
+  #     :authentication => :plain,
+  #     :domain => "localhost.localdomain"
+  #   })
+  #   puts "Emailed: #{email_subject n}"
+  # end
 
-  # Pony.mail(:to => 'you@example.com', :via => :smtp, :via_options => {
-  # :address              => 'smtp.gmail.com',
-  # :port                 => '587',
-  # :enable_starttls_auto => true,
-  # :user_name            => 'user',
-  # :password             => 'password',
-  # :authentication       => :plain, # :plain, :login, :cram_md5, no auth by default
-  # :domain               => "localhost.localdomain" # the HELO domain provided by the client to the server
-  # })
+
 end
 
 
