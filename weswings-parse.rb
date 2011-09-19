@@ -4,13 +4,17 @@ require 'net/http'
 require 'open-uri'
 require 'hpricot'
 require 'fileutils'
+require 'pony'
+
+require '../secrets'
 
 
 ## Some constants
 
 WESWINGS_URL = 'http://www.weswings.com'
 CLEAR = false
-DOWNLOAD = false
+DOWNLOAD = true
+EMAIL = true
 DOC_DIR = 'ww'
 PDF_DIR = "#{DOC_DIR}/pdf"
 ARCHIVE_DIR = "#{DOC_DIR}/pdf-archive"
@@ -41,6 +45,9 @@ def blog_loc n
   "#{BLOG_DIR}/#{n}.txt"
 end
 
+def email_subject n
+  "Wesfood - Weswings - #{n}"
+end
 
 # Check if `str` is composed entirely of characters in the string `chars`
 def str_just_contains(str, chars)
@@ -67,6 +74,7 @@ end
 
 # Remove all files if `CLEAR` is enabled
 if File.exist?(DOC_DIR) && CLEAR
+  # Leave the archive directory intact.
   [PDF_DIR, DIRTY_DIR, CLEAN_DIR, BLOC_DIR].each {|d| FileUtils.rm_rf d}
 end
 
@@ -158,8 +166,13 @@ names.each do |n|
   ls = ls.select {|l| l.length > 2 || l == "\n"}
 
   # Remove day-of-the-week header
-  ls.reject! {|l| ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY',
-                   'SATURDAY', 'SUNDAY'].any? {|d| l.index(d) == 0}}
+  ls.reject! do |l|
+    ['monday', 'tuesday', 'wednesday', 'thursday',
+     'friday', 'saturday', 'sunday'].any? do |d|
+      l.capitalize.index(d.capitalize) == 0
+    end
+  end
+
 
   # Clean up lines that look mostly like "Lunch Specials" or "Dinner Entrees".
   # This is necessary in case the weird formatting moved some letters to
@@ -199,6 +212,9 @@ names.each do |n|
     end
   end
   ls = new_ls
+
+  # Ensure there is a trailing newline.
+  ls << "\n"
 
   # Write the cleaned-up version.
   File.open clean_loc(n), 'w' do |f|
@@ -242,7 +258,7 @@ names.each do |n|
       items << {
         :desc => ([item_ls[0].squeeze('.').split(' - ')[-1].split(' . ')[0]] +
                   item_ls[1..-1]).join(' ').gsub(/\n/, ' ').squeeze(' ').strip,
-        :name => item_ls[0].split(' - ')[0],
+        :name => item_ls[0].split('.')[0].split(' - ')[0].strip,
         :price => item_ls[0].split('$')[1].to_f,
         :meal => in_dinner ? :dinner : :lunch
       }
@@ -257,17 +273,45 @@ names.each do |n|
 
   lunch = items.select {|i| i[:meal] == :lunch}
   dinner = items.select {|i| i[:meal] == :dinner}
-  item_print = proc do |f, item|
-    f.write "## #{item[:name]} (#{item[:price]})\n"
-    f.write "#{item[:desc]}\n\n"
+  item_print = proc do |item|
+    return "## #{item[:name]} (#{item[:price]})\n" +
+      "#{item[:desc]}\n\n"
   end
 
+  contents = "### Lunch\n\n"
+  contents += (lunch.collect {|item| item_print.call item}).join('')
+  contents += "### Dinner\n\n"
+  contents += (dinner.collect {|item| item_print.call item}).join('')
+
+  # Write blog contents to local file.
   File.open blog_loc(n), 'w' do |f|
-    f.write "### Lunch\n\n"
-    lunch.each {|item| item_print.call(f, item)}
-    f.write "### Dinner\n\n"
-    dinner.each {|item| item_print.call(f, item)}
+    f.write contents
   end
+  puts "#{clean_loc n} --> #{blog_loc n}"
+
+  # Fire off confirmation email.
+  if EMAIL
+    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => contents, :via => :smtp, :via_options => {
+      :address => 'smtp.gmail.com',
+      :port => '587',
+      :enable_starttls_auto => true,
+      :user_name => 'rubergly',
+      :password => GMAIL_PWORD,
+      :authentication => :plain,
+      :domain => "localhost.localdomain"
+    })
+    puts "Emailed: #{email_subject n}"
+  end
+
+  # Pony.mail(:to => 'you@example.com', :via => :smtp, :via_options => {
+  # :address              => 'smtp.gmail.com',
+  # :port                 => '587',
+  # :enable_starttls_auto => true,
+  # :user_name            => 'user',
+  # :password             => 'password',
+  # :authentication       => :plain, # :plain, :login, :cram_md5, no auth by default
+  # :domain               => "localhost.localdomain" # the HELO domain provided by the client to the server
+  # })
 end
 
 
