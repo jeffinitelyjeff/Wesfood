@@ -13,7 +13,7 @@ require '../secrets'
 ## Some constants
 
 WESWINGS_URL = 'http://www.weswings.com'
-CLEAR = false
+CLEAR = true
 DOWNLOAD = true
 EMAIL = true
 DOC_DIR = 'ww'
@@ -76,11 +76,11 @@ end
 # Remove all files if `CLEAR` is enabled
 if File.exist?(DOC_DIR) && CLEAR
   # Leave the archive directory intact.
-  [PDF_DIR, DIRTY_DIR, CLEAN_DIR, BLOC_DIR].each {|d| FileUtils.rm_rf d}
+  [PDF_DIR, DIRTY_DIR, CLEAN_DIR, BLOG_DIR].each {|d| FileUtils.rm_rf d}
 end
 
 # Create necessary directories
-[DOC_DIR, PDF_DIR, DIRTY_DIR, CLEAN_DIR].each do |d|
+[DOC_DIR, PDF_DIR, DIRTY_DIR, CLEAN_DIR, BLOG_DIR].each do |d|
   Dir.mkdir d unless File.exist? d
 end
 
@@ -235,7 +235,7 @@ names.each do |n|
   File.delete blog_loc(n) if File.exist? blog_loc(n)
 end
 
-names[0..0].each do |n|
+names.each do |n|
 
   # Read in the clean txt file.
   ls = []
@@ -285,27 +285,25 @@ names[0..0].each do |n|
   contents += (dinner.collect {|item| item_print.call item}).join('')
 
   # Write blog contents to local file.
-  File.open blog_loc(n), 'w' do |f|
+  File.open blog_loc(n), 'wb' do |f|
     f.write contents
   end
   puts "#{clean_loc n} --> #{blog_loc n}"
 
   # Fire off notification email.
-  # Redundant with IFTTT.
-  # if EMAIL
-  #   Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => "New Wesfood menu posted\n\n" + contents, :via => :smtp, :via_options => {
-  #     :address => 'smtp.gmail.com',
-  #     :port => '587',
-  #     :enable_starttls_auto => true,
-  #     :user_name => 'rubergly',
-  #     :password => GMAIL_PWORD,
-  #     :authentication => :plain,
-  #     :domain => "localhost.localdomain"
-  #   })
-  #   puts "Emailed: #{email_subject n}"
-  # end
+  if EMAIL
+    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n) + "!m", :body => "New Wesfood menu posted\n\n" + contents, :via => :smtp, :via_options => {
+      :address => 'smtp.gmail.com',
+      :port => '587',
+      :enable_starttls_auto => true,
+      :user_name => 'rubergly',
+      :password => GMAIL_PWORD,
+      :authentication => :plain,
+      :domain => "localhost.localdomain"
+    })
+    puts "Emailed: #{email_subject n}"
+  end
 
+  # TODO: schedule posts on Tumblr.
 
 end
-
-
