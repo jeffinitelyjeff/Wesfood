@@ -164,16 +164,7 @@ names.each do |n|
   # single-character artifact lines.
   # FIXME: Ruby 1.8.7 doesn't have Array::select!, but should be moving to
   # 1.9.2 anyway.
-  ls = ls.select {|l| l.length > 2 || l == "\n"}
-
-  # Remove day-of-the-week header
-  ls.reject! do |l|
-    ['monday', 'tuesday', 'wednesday', 'thursday',
-     'friday', 'saturday', 'sunday'].any? do |d|
-      l.capitalize.index(d.capitalize) == 0
-    end
-  end
-
+  ls = ls.select {|l| l.length > 5 || l == "\n"}
 
   # Clean up lines that look mostly like "Lunch Specials" or "Dinner Entrees".
   # This is necessary in case the weird formatting moved some letters to
@@ -192,24 +183,37 @@ names.each do |n|
     end
   end
 
+  # Remove everything that's not in a lunch, breakfast, or dinner section. This gets
+  # rid of miscellaneous stuff that they put at the top, namely the day of the week
+  # formatted some crazy way.
+  in_lunch = false
+  in_breakfast = false
+  in_dinner = false
+  ls = ls.select do |l|
+    in_lunch ||= l.include? "Lunch Specials"
+    in_breakfast ||= l.include? "Breakfast Specials"
+    in_dinner ||= l.include? "Dinner Entrees"
+    in_lunch || in_breakfast || in_dinner
+  end
+
   # Ensure that there is an empty line between each menu item.
   new_ls = []
-  (0..(ls.length-1)).each do |i|
+  ls.each_with_index do |l, i|
     # We should only insert a newline if one didn't already exist.
     has_space = i == 0 || ls[i-1] == "\n" || ls[i-1].include?("\n\n")
 
-    new_ls << "\n" if !has_space && (item_first_line(ls[i]) || ls[i].include?("Dinner"))
-    new_ls << ls[i]
+    new_ls << "\n" if !has_space && (item_first_line(l) || l.include?("Dinner"))
+    new_ls << l
   end
   ls = new_ls
 
   # Ensure there aren't any extra empty lines in the middle of items.
   new_ls = []
-  (0..(ls.length-1)).each do |i|
-    is_empty = ls[i] == "\n"
+  ls.each_with_index do |l, i|
+    is_empty = l == "\n"
 
     if !is_empty || (i != ls.length-1 && (item_first_line(ls[i+1]) || ls[i+1].include?("Dinner")))
-      new_ls << ls[i]
+      new_ls << l
     end
   end
   ls = new_ls
