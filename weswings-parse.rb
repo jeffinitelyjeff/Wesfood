@@ -14,8 +14,8 @@ require '../secrets'
 
 WESWINGS_URL = 'http://www.weswings.com'
 CLEAR = false
-DOWNLOAD = true
-EMAIL = true
+DOWNLOAD = false
+EMAIL = false
 DOC_DIR = 'ww'
 PDF_DIR = "#{DOC_DIR}/pdf"
 ARCHIVE_DIR = "#{DOC_DIR}/pdf-archive"
@@ -257,7 +257,7 @@ names.each do |n|
       # modified too much; should strive to fix things at the
       # dirty -> clean stage.
       items << {
-        :desc => ([item_ls[0].squeeze('.').split(' - ')[-1].split(' . ')[0]] +
+        :desc => ([item_ls[0].squeeze('.').split(' . ')[0].split(' - ')[1] || ""] +
                   item_ls[1..-1]).join(' ').gsub(/\n/, ' ').squeeze(' ').strip,
         :name => item_ls[0].split('.')[0].split(' - ')[0].strip,
         :price => item_ls[0].split('$')[1].to_f,
@@ -275,14 +275,13 @@ names.each do |n|
   lunch = items.select {|i| i[:meal] == :lunch}
   dinner = items.select {|i| i[:meal] == :dinner}
   item_print = proc do |item|
-    return "## #{item[:name]} (#{item[:price]})\n" +
-      "#{item[:desc]}\n\n"
+    "## #{item[:name]} (#{item[:price]})\n" + "#{item[:desc]}\n\n"
   end
 
-  contents = "### Lunch\n\n"
-  contents += (lunch.collect {|item| item_print.call item}).join('')
-  contents += "### Dinner\n\n"
-  contents += (dinner.collect {|item| item_print.call item}).join('')
+  contents = "- - -\n# Lunch\n- - -\n\n"
+  contents += (lunch.collect &item_print).join('')
+  contents += "- - -\n# Dinner\n- - -\n\n"
+  contents += (dinner.collect &item_print).join('')
 
   # Write blog contents to local file.
   File.open blog_loc(n), 'wb' do |f|
