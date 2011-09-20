@@ -1,14 +1,16 @@
-require 'rubygems'
-require 'Docsplit'
+require 'fileutils'
 require 'net/http'
 require 'open-uri'
+
+require 'rubygems'
+require 'Docsplit'
 require 'hpricot'
-require 'fileutils'
 require 'pony'
 # require 'tumblr'
 # require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
 
 require '../secrets'
+require './util'
 
 
 ## Some constants
@@ -74,18 +76,6 @@ end
 def parse_date(name)
   # I have a feeling this won't always work...
   name.split("%20")[-1]
-end
-
-def parse_day(name, prev)
-  date = parse_date name
-  m = date.split('-')[0].to_i
-  d = date.split('-')[1].to_i
-  y = date.split('-')[2].to_i + 2000
-  t = Time.utc(y, m, d, 0, 0, 0, 0)
-  wd = prev ? (t.wday - 1) % 7 : t.wday
-
-  ['Sunday', 'Monday', 'Tuesday', 'Wednesday',
-   'Thursday', 'Friday', 'Saturday'][wd]
 end
 
 
@@ -307,8 +297,8 @@ names.each do |n|
     'format' => 'markdown',
     'tags' => 'ww',
     'slug' => "weswings-#{parse_date n}",
-    'publish-on' => "#{parse_day n, true} 8PM",
-    'title' => "Weswings - #{parse_day n, false} #{parse_date(n).gsub('-', '/')}"
+    'publish-on' => "#{parse_day(parse_date n), true} 8PM",
+    'title' => "Weswings - #{parse_day(parse_date n), false} #{parse_date(n).gsub('-', '/')}"
   }
   contents = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
   contents += "- - -\n# Lunch\n- - -\n\n"
@@ -317,7 +307,7 @@ names.each do |n|
   contents += (dinner.collect &item_print).join('')
 
   # Write blog contents to local file.
-  File.open blog_loc(n), 'wb' do |f|
+  File.open blog_loc(n), 'w' do |f|
     f.write contents
   end
   puts "#{clean_loc n} --> #{blog_loc n}"

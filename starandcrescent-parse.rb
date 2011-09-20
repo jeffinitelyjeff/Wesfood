@@ -1,7 +1,9 @@
+require 'fileutils'
+
 require 'rubygems'
-require 'FileUtils'
 require 'pony'
 
+require './util'
 
 ## Some constants
 
@@ -112,7 +114,7 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
   n = d.split('/')[-1].split('.txt')[0]
 
   ls = []
-  File.open d, 'r' do |f|
+  File.open txt_loc(n), 'r' do |f|
     while l = f.gets
       ls << l
     end
@@ -147,9 +149,8 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
     dinner = {
       :dessert => dinner_ls.select {|l| l.index('Dessert') == 0}[0].split('Dessert')[-1].split('Dessert')[-1].strip[2..-1]
     }
-    # this is a lazy heuristic at best; it assumes that when there's no comma
-    # separating the salad there are no commas at all. hopefully that'll
-    # always be the case.
+    # this assumes that when there's no comma separating the salad there are no
+    # commas at all. hopefully that'll always be the case.
     if dinner_ls[0].include? ','
       dinner[:salad] = dinner_ls[0].split(',')[0]
       dinner[:main] = (dinner_ls[0].split(',')[1..-1].join(',').strip + ' ' +
@@ -169,9 +170,35 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
       dinner[:main] = dinner_ls.reject {|l| l.index('Dessert') == 0 || l ==
         "\n"}.collect {|l| l.strip}.join(' ').squeeze(' ')
     end
-
   end
 
+  yaml = {
+    'type' => 'regular',
+    'state' => 'queue',
+    'format' => 'markdown',
+    'tags' => 's+c',
+    'slug' => "s-and-c-#{n}",
+    'publish-on' => "#{parse_day n, true} 8PM",
+    'title' => "S&C - #{parse_day n, false} #{n.gsub('-', '/')}"
+  }
 
-  puts 'lunch', lunch_ls.inspect, lunch, 'dinner', dinner_ls.inspect, dinner
+  header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
+
+  content = ""
+  if !lunch.empty?
+    content += "- - -\n# Lunch\n- - -\n\n"
+    content += "**Entree:** #{lunch[:main]}  \n"
+    content += "**Dessert:** #{lunch[:dessert]}  \n\n"
+  end
+  if !dinner.empty?
+    content += "- - -\n# Dinner\n- - -\n\n"
+    content += "**Salad:** #{dinner[:salad]}  \n"
+    content += "**Entree:** #{dinner[:main]}  \n"
+    content += "**Dessert:** #{dinner[:dessert]}  \n\n"
+  end
+
+  File.open blog_loc(n), 'w' do |f|
+    f.write header + content
+  end
+  puts "#{txt_loc n} --> #{blog_loc n}"
 end
