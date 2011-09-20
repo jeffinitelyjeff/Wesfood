@@ -5,7 +5,7 @@ require 'open-uri'
 require 'hpricot'
 require 'fileutils'
 require 'pony'
-require 'Tumblr'
+# require 'tumblr'
 # require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
 
 require '../secrets'
@@ -310,7 +310,7 @@ names.each do |n|
     'publish-on' => "#{parse_day n, true} 8PM",
     'title' => "Weswings - #{parse_day n, false} #{parse_date(n).gsub('-', '/')}"
   }
-  contents = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n"
+  contents = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
   contents += "- - -\n# Lunch\n- - -\n\n"
   contents += (lunch.collect &item_print).join('')
   contents += "- - -\n# Dinner\n- - -\n\n"
@@ -337,13 +337,13 @@ names.each do |n|
   end
 
   # TODO: schedule posts on Tumblr.
-  req = Tumblr::Post.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
-  req.perform do |resp|
-    if resp.success?
-      puts resp.body
-    else
-      puts "Something went wrong: #{resp.code} #{resp.message}"
-    end
-  end
+  # req = Tumblr::Post.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
+  # req.perform do |resp|
+  #   if resp.success?
+  #     puts resp.body
+  #   else
+  #     puts "Something went wrong: #{resp.code} #{resp.message}"
+  #   end
+  # end
 
 end
