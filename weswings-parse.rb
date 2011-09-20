@@ -13,7 +13,7 @@ require '../secrets'
 ## Some constants
 
 WESWINGS_URL = 'http://www.weswings.com'
-CLEAR = true
+CLEAR = false
 DOWNLOAD = true
 EMAIL = true
 DOC_DIR = 'ww'
@@ -47,7 +47,7 @@ def blog_loc n
 end
 
 def email_subject n
-  "Wesfood - Weswings - #{n}"
+  "WesWings Menu - #{n}"
 end
 
 # Check if `str` is composed entirely of characters in the string `chars`
@@ -292,7 +292,7 @@ names.each do |n|
 
   # Fire off notification email.
   if EMAIL
-    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n) + "!m", :body => "New Wesfood menu posted\n\n" + contents, :via => :smtp, :via_options => {
+    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => "!m\n\n" + contents, :via => :smtp, :via_options => {
       :address => 'smtp.gmail.com',
       :port => '587',
       :enable_starttls_auto => true,
