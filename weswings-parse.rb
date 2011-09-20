@@ -5,7 +5,8 @@ require 'open-uri'
 require 'hpricot'
 require 'fileutils'
 require 'pony'
-require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
+require 'Tumblr'
+# require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
 
 require '../secrets'
 
@@ -336,7 +337,7 @@ names.each do |n|
   end
 
   # TODO: schedule posts on Tumblr.
-  req = Tumblr::Tumblr.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
+  req = Tumblr::Post.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
   req.perform do |resp|
     if resp.success?
       puts resp.body
