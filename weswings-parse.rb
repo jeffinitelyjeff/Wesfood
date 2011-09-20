@@ -5,7 +5,7 @@ require 'open-uri'
 require 'hpricot'
 require 'fileutils'
 require 'pony'
-require 'OAuth'
+require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
 
 require '../secrets'
 
@@ -68,6 +68,23 @@ def item_first_line(str)
       str.split('$')[-1].strip.to_f.to_s == str.split('$')[-1].strip
   ]
   return options.any? {|o| o}
+end
+
+def parse_date(name)
+  # I have a feeling this won't always work...
+  name.split("%20")[-1]
+end
+
+def parse_day(name, prev)
+  date = parse_date name
+  m = date.split('-')[0].to_i
+  d = date.split('-')[1].to_i
+  y = date.split('-')[2].to_i + 2000
+  t = Time.utc(y, m, d, 0, 0, 0, 0)
+  wd = prev ? (t.wday - 1) % 7 : t.wday
+
+  ['Sunday', 'Monday', 'Tuesday', 'Wednesday',
+   'Thursday', 'Friday', 'Saturday'][wd]
 end
 
 
@@ -282,7 +299,18 @@ names.each do |n|
     "## #{item[:name]} (#{item[:price]})\n" + "#{item[:desc]}\n\n"
   end
 
-  contents = "- - -\n# Lunch\n- - -\n\n"
+  # FIXME: look into HTML to do better hovering, though not that necessary.
+  yaml = {
+    'type' => 'regular',
+    'state' => 'queue',
+    'format' => 'markdown',
+    'tags' => 'ww',
+    'slug' => "weswings-#{parse_date n}",
+    'publish-on' => "#{parse_day n, true} 8PM",
+    'title' => "Weswings - #{parse_day n, false} #{parse_date(n).gsub('-', '/')}"
+  }
+  contents = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n"
+  contents += "- - -\n# Lunch\n- - -\n\n"
   contents += (lunch.collect &item_print).join('')
   contents += "- - -\n# Dinner\n- - -\n\n"
   contents += (dinner.collect &item_print).join('')
@@ -308,5 +336,13 @@ names.each do |n|
   end
 
   # TODO: schedule posts on Tumblr.
+  req = Tumblr::Tumblr.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
+  req.perform do |resp|
+    if resp.success?
+      puts resp.body
+    else
+      puts "Something went wrong: #{resp.code} #{resp.message}"
+    end
+  end
 
 end
