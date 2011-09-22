@@ -173,13 +173,13 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
   end
 
   yaml = {
-    'type' => 'regular',
-    'state' => 'queue',
-    'format' => 'markdown',
-    'tags' => 's+c',
-    'slug' => "s-and-c-#{n}",
-    'publish-on' => "#{parse_day n, true} 8PM",
-    'title' => "S&C - #{parse_day n, false} #{n.gsub('-', '/')}"
+    :type => 'regular',
+    :state => 'queue',
+    :format => 'markdown',
+    :tags => 's+c',
+    :slug => "s-and-c-#{n}",
+    :"publish-on" => "#{parse_day n, true} 8PM",
+    :title => "S&C - #{parse_day n} #{n.gsub('-', '/')}"
   }
 
   header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"

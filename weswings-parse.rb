@@ -15,10 +15,15 @@ require './util'
 
 ## Some constants
 
-WESWINGS_URL = 'http://www.weswings.com'
+# CLEAR should only be on for testing, and only makes sense when DOWNLOAD is
+# also on. CLEAR shouldn't coincide with TUMBLR; disastrous reposts will happen.
 CLEAR = false
-DOWNLOAD = false
-EMAIL = false
+# DOWNLOAD should only be off for testing.
+DOWNLOAD = true
+# TUMBLR should never coincide with CLEAR.
+TUMBLR = true
+
+WESWINGS_URL = 'http://www.weswings.com'
 DOC_DIR = 'ww'
 PDF_DIR = "#{DOC_DIR}/pdf"
 ARCHIVE_DIR = "#{DOC_DIR}/pdf-archive"
@@ -73,9 +78,23 @@ def item_first_line(str)
   return options.any? {|o| o}
 end
 
-def parse_date(name)
-  # I have a feeling this won't always work...
-  name.split("%20")[-1]
+# Produces output like `9-17-11`.
+def parse_date(name, sep = '-')
+  date = name.split("%20")[-1]
+
+  case sep
+  when '/'
+    date.gsub '-', '/'
+  when '-'
+    date.gsub '/', '-'
+  else
+    # shouldn't ever get here...
+    date
+  end
+end
+
+def blog_menu_item(item)
+  "## #{item[:name]} (#{item[:price]})\n#{item[:desc]}"
 end
 
 
@@ -125,7 +144,6 @@ if DOWNLOAD
           file.write resp.body
         end
       end
-
     end
   end
 
@@ -284,47 +302,54 @@ names.each do |n|
     end
   end
 
-  lunch = items.select {|i| i[:meal] == :lunch}
-  dinner = items.select {|i| i[:meal] == :dinner}
-  item_print = proc do |item|
-    "## #{item[:name]} (#{item[:price]})\n" + "#{item[:desc]}\n\n"
-  end
-
   # FIXME: look into HTML to do better hovering, though not that necessary.
   yaml = {
-    'type' => 'regular',
-    'state' => 'queue',
-    'format' => 'markdown',
-    'tags' => 'ww',
-    'slug' => "weswings-#{parse_date n}",
-    'publish-on' => "#{parse_day(parse_date n), true} 8PM",
-    'title' => "Weswings - #{parse_day(parse_date n), false} #{parse_date(n).gsub('-', '/')}"
+    :type => 'regular',
+    :state => 'queue',
+    :format => 'markdown',
+    :tags => 'ww',
+    :source => "http://www.weswings.com/#{n}.pdf",
+    :slug => "weswings-#{parse_date n, '-'}",
+    :"publish-on" => "#{parse_day parse_date(n), :prev => true} 8PM",
+    :title => "Weswings - #{parse_day parse_date(n)} #{parse_date n, '/'}"
   }
-  contents = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
-  contents += "- - -\n# Lunch\n- - -\n\n"
-  contents += (lunch.collect &item_print).join('')
-  contents += "- - -\n# Dinner\n- - -\n\n"
-  contents += (dinner.collect &item_print).join('')
+  header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
+
+  l_items = items.select {|i| i[:meal] == :lunch}
+  d_items = items.select {|i| i[:meal] == :dinner}
+
+  lunch = header("Lunch") + l_items.collect {|i| blog_menu_item i}.join("\n\n")
+  dinner = header("Dinner") + d_items.collect {|i| blog_menu_item i}.join("\n\n")
+  content = lunch + "\n\n" + dinner
 
   # Write blog contents to local file.
   File.open blog_loc(n), 'w' do |f|
-    f.write contents
+    f.write header + content
   end
   puts "#{clean_loc n} --> #{blog_loc n}"
 
-  # Fire off notification email.
-  if EMAIL
-    Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => "!m\n\n" + contents, :via => :smtp, :via_options => {
-      :address => 'smtp.gmail.com',
-      :port => '587',
-      :enable_starttls_auto => true,
-      :user_name => 'rubergly',
-      :password => GMAIL_PWORD,
-      :authentication => :plain,
-      :domain => "localhost.localdomain"
-    })
-    puts "Emailed: #{email_subject n}"
+  post = yaml.merge(:email => TUMBLR_USER,
+                    :password => TUMBLR_PWORD,
+                    :body => content)
+  if TUMBLR
+    res = Net::HTTP.post_form URI.parse('http://www.tumblr.com/api/write'), post
+    puts res.body
   end
+
+  # TODO: not sure if I want this anymore.
+  # # Fire off notification email.
+  # if EMAIL
+  #   Pony.mail(:to => 'rubergly@gmail.com', :from => TUMBLR_EMAIL, :subject => email_subject(n), :body => "!m\n\n" + contents, :via => :smtp, :via_options => {
+  #     :address => 'smtp.gmail.com',
+  #     :port => '587',
+  #     :enable_starttls_auto => true,
+  #     :user_name => 'rubergly',
+  #     :password => GMAIL_PWORD,
+  #     :authentication => :plain,
+  #     :domain => "localhost.localdomain"
+  #   })
+  #   puts "Emailed: #{email_subject n}"
+  # end
 
   # TODO: schedule posts on Tumblr.
   # req = Tumblr::Post.new(TUMBLR_USER, TUMBLR_PWORD).post(contents)
