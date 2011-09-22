@@ -176,7 +176,7 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
     :type => 'regular',
     :state => 'queue',
     :format => 'markdown',
-    :tags => 's+c',
+    :tags => 'sc',
     :slug => "s-and-c-#{n}",
     :"publish-on" => "#{parse_day n, true} 8PM",
     :title => "S&C - #{parse_day n} #{n.gsub('-', '/')}"
