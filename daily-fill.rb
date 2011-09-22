@@ -35,7 +35,9 @@ log = Time.now.to_s + "\n"
 ['ww', 'sc'].each do |tag|
   resp = Net::HTTP.get_response URI.parse("http://api.tumblr.com/v2/blog/www.wesfood.com/posts?api_key=#{CONSUMER_KEY}&tag=#{tag}")
   json = JSON.parse resp.body
-  if !Date.parse(json['response']['posts'][0]['date']) == d
+  post_date = Date.parse(json['response']['posts'][0]['date'])
+  dn = d.next_day
+  if post_date != d
     log += "#{tag} - posting"
     post = {
       :email => TUMBLR_USER,
@@ -43,8 +45,8 @@ log = Time.now.to_s + "\n"
       :type => 'regular',
       :format => 'markdown',
       :tags => tag,
-      :slug => "#{slug[tag]}-#{d.to_s}",
-      :title => "#{restaurant[tag]} - #{Date::DAYNAMES[d.wday]} #{american d}",
+      :slug => "#{slug[tag]}-#{dn.to_s}",
+      :title => "#{restaurant[tag]} - #{Date::DAYNAMES[dn.wday]} #{american dn}",
       :body => "Sorry, no #{restaurant[tag]} menu for today. #{extra_text[tag]}"
     }
     resp = Net::HTTP.post_form URI.parse('http://www.tumblr.com/api/write'), post
