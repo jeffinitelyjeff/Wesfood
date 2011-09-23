@@ -12,7 +12,7 @@ def american(d)
   "#{d.month}/#{d.day}/#{d.year - 2000}"
 end
 
-d = Date.today
+d = Date.parse(Time.now.getutc.to_s)
 
 restaurant = {
   'ww' => 'WesWings',
@@ -36,7 +36,8 @@ log = Time.now.to_s + "\n"
   resp = Net::HTTP.get_response URI.parse("http://api.tumblr.com/v2/blog/www.wesfood.com/posts?api_key=#{CONSUMER_KEY}&tag=#{tag}")
   json = JSON.parse resp.body
   post_date = Date.parse(json['response']['posts'][0]['date'])
-  dn = d.next_day
+  # we can't just use d.next_day because d represents the UTC day
+  dn = Date.today.next_day
   if post_date != d
     log += "#{tag} - posting"
     post = {
