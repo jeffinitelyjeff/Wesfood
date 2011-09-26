@@ -4,7 +4,7 @@ require 'open-uri'
 
 require 'rubygems'
 require 'Docsplit'
-require 'hpricot'
+require 'nokogiri'
 require 'pony'
 # require 'tumblr'
 # require '~/.rvm/gems/ruby-1.9.2-p290/gems/tumblr-rb-1.3.0/lib/tumblr'
@@ -118,11 +118,11 @@ if DOWNLOAD
 
   # Load the WesWings page, get all links in the menu area, filter out empty
   # links and remove the .pdf extensions.
-  doc = open(WESWINGS_URL) {|f| Hpricot f}
-  links = (doc/"#table2 td:first-child > p a").collect do |e|
-    e.attributes['href']
+  doc = Nokogiri::HTML(open(WESWINGS_URL))
+  links = doc.css('#table2 td:first-child > p a').collect do |a|
+    a['href']
   end
-  names = links.reject {|l| l == ""}.collect do |l|
+  names = links.reject {|l| l == nil}.collect do |l|
     l.sub '.pdf', ''
   end.reject do |n|
     File.exist? "#{PDF_DIR}/#{n}.pdf"
@@ -333,7 +333,7 @@ names.each do |n|
                     :body => content)
   if TUMBLR
     res = Net::HTTP.post_form URI.parse('http://www.tumblr.com/api/write'), post
-    puts res.body
+    puts "#{blog_loc n} --> Wesfood.com (#{res.body})"
   end
 
   # TODO: not sure if I want this anymore.
