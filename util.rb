@@ -17,3 +17,18 @@ end
 def header(s)
   "- - -\n# #{s}\n- - -\n\n"
 end
+
+# Get the american format for a date
+def american(d, o = {})
+  sep = o[:sep] || '/'
+  parse = o[:parse] || false
+  prev = o[:prev] || false
+
+  d = Date.parse d if parse
+  d = d - 1 if prev
+  mo = d.month.inspect
+  da = d.day.inspect
+  ye = (d.year - 2000).inspect
+  ye = "0" + ye if ye.length == 1
+  mo + sep + da + sep + ye
+end

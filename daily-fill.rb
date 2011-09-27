@@ -7,10 +7,7 @@ require 'date'
 require 'json'
 
 require '../secrets'
-
-def american(d)
-  "#{d.month}/#{d.day}/#{d.year - 2000}"
-end
+require './util'
 
 d = Date.parse(Time.now.getutc.to_s)
 

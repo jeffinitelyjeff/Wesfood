@@ -7,13 +7,13 @@ require './util'
 
 ## Some constants
 
-EMAIL = false
-CLEAR = true
+CLEAR = false
+TUMBLR = true
 DOC_DIR = 'sc'
 DIGEST_DIR = "#{DOC_DIR}/digest"
 TXT_DIR = "#{DOC_DIR}/txt"
 BLOG_DIR = "#{DOC_DIR}/blog"
-
+POST_HOUR = 20
 
 ## Some methods
 
@@ -25,35 +25,18 @@ def blog_loc(n)
   "#{BLOG_DIR}/#{n}.txt"
 end
 
-def date_s(l)
-  d = date(l)
-  return 'invalid date' if d.empty?
-  "#{d[:m]}-#{d[:d]}-#{d[:y]}"
-end
-
-def date(l)
-  m = month(l.split(' ')[0])
-  return {} if m == 0
-  d = l.split(' ')[1].each_char.select {|c| c.to_i.to_s == c}.join('').to_i
-  y = m > 8 ? 11 : 12
-  return { :m => m, :d => d, :y => y }
-end
-
-def month(s)
-  months = {
-    :jan => 1, :feb => 2,  :mar => 3,  :apr => 4,
-    :may => 5, :jun => 6,  :jul => 7,  :aug => 8,
-    :sep => 9, :oct => 10, :nov => 11, :dec => 12
-  }
-  months.select {|k,v| (s || "").downcase.include?(k.to_s)}.values[0] || 0
-end
-
 def new_menu_item(l)
   return l.index("Lunch") == 0 || l.index("Dinner") == 0
 end
 
 def date_line(l)
-  date_s(l) != 'invalid date'
+  begin
+    Date.parse l
+    return true
+  rescue ArgumentError
+    return false
+  end
+  # date_s(l) != 'invalid date'
 end
 
 
@@ -73,7 +56,11 @@ end
 
 #### Split apart each digest file
 
-Dir["#{DIGEST_DIR}/*.txt"].each do |d|
+# we don't actually want to process each digest file; that'll mean we
+# publish stuff multiple times. FIXME: ideally, we'd be creating the digest
+# text file and then only be acting on the created digests.
+days = []
+ARGV[0].nil? ? Dir["#{DIGEST_DIR}/*.txt"] : ["#{ARGV[0]}"].each do |d|
 
   ls = []
   File.open d, 'r' do |f|
@@ -86,9 +73,9 @@ Dir["#{DIGEST_DIR}/*.txt"].each do |d|
   day_ls = []
   current_day = ''
   ls.each do |l|
-    if date_line(l)
+    if date_line l
       files[current_day] = day_ls unless day_ls.empty?
-      current_day = date_s(l)
+      current_day = Date.parse l
       day_ls = []
     else
       day_ls << l
@@ -103,13 +90,13 @@ Dir["#{DIGEST_DIR}/*.txt"].each do |d|
       end
     end
     puts "--> #{txt_loc k}"
+    days << txt_loc(k)
   end
 end
 
+#### Make a blog-formatted post for each day created
 
-#### Make a blog-formatted post for each day
-
-Dir["#{TXT_DIR}/*.txt"].each do |d|
+days.each do |d|
 
   n = d.split('/')[-1].split('.txt')[0]
 
@@ -172,14 +159,21 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
     end
   end
 
+
+  d = Date.parse n
+
+  # don't queue it up and post next week if we're already too late, just post
+  # now.
+  late = Time.now > (d - 1).to_time + POST_HOUR*60*60
+
   yaml = {
     :type => 'regular',
-    :state => 'queue',
+    :state => late ? 'published' : 'queue',
     :format => 'markdown',
     :tags => 'sc',
     :slug => "s-and-c-#{n}",
-    :"publish-on" => "#{parse_day n, true} 8PM",
-    :title => "S&C - #{parse_day n} #{n.gsub('-', '/')}"
+    :"publish-on" => "#{d - 1} #{POST_HOUR - 12}PM",
+    :title => "S&C - #{american d, :sep => '/'}"
   }
 
   header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
@@ -197,8 +191,17 @@ Dir["#{TXT_DIR}/*.txt"].each do |d|
     content += "**Dessert:** #{dinner[:dessert]}  \n\n"
   end
 
+  # Write blog contents to local file.
   File.open blog_loc(n), 'w' do |f|
     f.write header + content
   end
   puts "#{txt_loc n} --> #{blog_loc n}"
+
+  post = yaml.merge( :email => TUMBLR_USER,
+                     :password => TUMBLR_PWORD,
+                     :body => content )
+  if TUMBLR
+    res = Net::HTTP.post_form URI.parse('http://www.tumblr.com/api/write'), post
+    puts "#{blog_loc n} --> Wesfood.com (#{res.body})"
+  end
 end
