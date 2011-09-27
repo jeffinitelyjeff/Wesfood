@@ -1,8 +1,11 @@
 require 'fileutils'
+require 'net/http'
+require 'open-uri'
 
 require 'rubygems'
 require 'pony'
 
+require '../secrets'
 require './util'
 
 ## Some constants
@@ -168,13 +171,18 @@ days.each do |d|
 
   yaml = {
     :type => 'regular',
-    :state => late ? 'published' : 'queue',
     :format => 'markdown',
     :tags => 'sc',
     :slug => "s-and-c-#{n}",
-    :"publish-on" => "#{d - 1} #{POST_HOUR - 12}PM",
-    :title => "S&C - #{american d, :sep => '/'}"
+    :title => "S&C - #{Date::DAYNAMES[d.wday] #{american d, :sep => '/'}"
   }
+
+  if late
+    yaml[:state] => 'published'
+  else
+    yaml[:state] => 'queue'
+    yaml[:"publish-on"] => "#{d - 1} #{POST_HOUR - 12}PM"
+  end
 
   header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
 
