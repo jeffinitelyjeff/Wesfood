@@ -178,10 +178,10 @@ days.each do |d|
   }
 
   if late
-    yaml[:state] => 'published'
+    yaml[:state] = 'published'
   else
-    yaml[:state] => 'queue'
-    yaml[:"publish-on"] => "#{d - 1} #{POST_HOUR - 12}PM"
+    yaml[:state] = 'queue'
+    yaml[:"publish-on"] = "#{d - 1} #{POST_HOUR - 12}PM"
   end
 
   header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
