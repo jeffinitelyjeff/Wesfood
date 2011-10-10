@@ -174,14 +174,14 @@ days.each do |d|
     :format => 'markdown',
     :tags => 'sc',
     :slug => "s-and-c-#{n}",
-    :title => "S&C - #{Date::DAYNAMES[d.wday] #{american d, :sep => '/'}"
+    :title => "S&C - #{Date::DAYNAMES[d.wday]} #{american d, :sep => '/'}"
   }
 
   if late
     yaml[:state] = 'published'
   else
     yaml[:state] = 'queue'
-    yaml[:"publish-on"] = "#{d - 1} #{POST_HOUR - 12}PM"
+    yaml[:'publish-on'] = "#{d - 1} #{POST_HOUR - 12}PM"
   end
 
   header = "---\n" + yaml.collect {|k,v| "#{k}: #{v}"}.join("\n") + "\n---\n\n"
