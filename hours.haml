@@ -13,7 +13,7 @@
 		usdanLateNight: [ {days: [0, 6], range: [21.5, 1]} ],
 		summerfieldsLunch: [ {days: [1, 5], range: [11, 14]} ],
 		summerfieldsDinner: [ {days: [0, 6], range: [17.5, 21]} ],
-		weswingsLunch: [ {days: [0, 6], range: [11.3, 14]} ],
+		weswingsLunch: [ {days: [0, 6], range: [11.5, 14]} ],
 		weswingsDinner: [ {days: [0, 6], range: [17.5, 20]} ],
 		pi: [
 			{days: 0, range: [13, 18]},
@@ -50,7 +50,15 @@
 		["usdanDFC", "Usdan DFC"],
 		["redBlack", "Red & Black Cafe"]
 	];
-	
+
+	var disp = function(hourNum) {
+		var am = hourNum < 12,
+			half = hourNum % 1 !== 0,
+			cut = Math.floor(hourNum),
+			reg = cut === 0 ? 12 : cut - (cut > 12 ? 12 : 0);
+
+		return reg + (half ? ":30" : ":00") + (am ? " AM" : " PM");
+	};
 
 	$("document").ready( function() {
 
@@ -82,8 +90,10 @@
 					$("<td>X</td>").appendTo(row);
 					x = x + 1;
 				}
-
-				cell.text(range[0] + " - " + range[1]).appendTo(row);
+				
+				cell.html("<span class='start'>" + disp(range[0]) +
+					"</span><span class='end'>" + disp(range[1]) +
+					"</span>").appendTo(row);
 				x = x + 1 + ($.isArray(days) ? days[1] - days[0] : 0);
 			}
 
@@ -111,7 +121,36 @@
 
 			td
 				text-align: center
-				border: 1px solid black
+				padding: 6px 15px
+				background-color: #ddd
+				color: #333
+				font-size: 12px
+				border-top: 1px solid white
+				border-right: 1px dashed white
+
+				span.start, span.end
+					display: block
+
+				&.label
+					text-align: left
+					background-color: #666
+					font-size: 14px
+					color: white
+					font-family: "Helvetica Neue", Helvetica, Arial, sans-serif
+					border-right: 1px solid black
+
+			tr:hover td.label
+				background: #aaa
+
+			tr:hover td:hover
+				background-color: #888
+				color: white
+
+			th
+				padding: 6px 15px
+				background-color: #444
+				color: white
+				font-size: 14px
 
 		#hours
 			border-collapse: collapse
@@ -150,16 +189,6 @@
 
 
 
--# #fallbreakschedule {  border-collapse: collapse; }
--# #fallbreakschedule td { padding: 6px 15px; background-color: #ddd; color: #333; font-size: 12px; border-top: 1px solid white; }
--# #fallbreakschedule th { padding: 6px 15px; background-color: #444; color: white; font-size: 16px}
--# #fallbreakschedule tr td:first-child { background: #777; font-size: 16px; border-right: 1px solid black; color: white; font-weight: bold; }
--# #fallbreakschedule tr:hover td { background: #aaa !important; }
--# #fallbreakschedule tr:hover td:nth-child(3) { background: #aaa !important; }
--# #fallbreakschedule tr:hover td:first-child { background: #888; color: black; }
--# #fallbreakschedule tr td:nth-child(2), td:nth-child(6) { border-right: 1px dashed white; }
--# #fallbreakschedule tr td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) { background: #ccc !important; }
-
 %table#new-hours
 	%thead
 		%tr
@@ -174,350 +203,3 @@
 
 	%tbody
 				
-%table#hours
-	%thead
-		%tr
-			%th
-			%th
-			%th Sun
-			%th Mon
-			%th Tue
-			%th Wed
-			%th Thu
-			%th Fri
-			%th Sat
-
-	%tbody
-		
-		%tr.first_row
-			%td.label1.split{:rowspan => 8} Usdan Marketplace
-			%td.label2{:rowspan => 2} Breakfast
-			%td X
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td X
-		%tr.second_row
-			%td X
-			%td 10:30 AM
-			%td 10:30 AM
-			%td 10:30 AM
-			%td 10:30 AM
-			%td 10:30 AM
-			%td X
-
-		%tr.first_row
-			%td.label2{:rowspan => 2} Lunch
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-		%tr.second_row
-			%td 2:00 PM
-			%td 3:00 PM
-			%td 3:00 PM
-			%td 3:00 PM
-			%td 3:00 PM
-			%td 3:00 PM
-			%td 2:00 PM
-
-		%tr.first_row
-			%td.label2{:rowspan => 2} Dinner
-			%td 5:00 PM
-			%td 5:00 PM
-			%td 5:00 PM
-			%td 5:00 PM
-			%td 5:00 PM
-			%td 5:00 PM
-			%td 5:00 PM
-		%tr.second_row
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-
-		%tr.first_row
-			%td.label2{:rowspan => 2} Late Night
-			%td 9:30 PM
-			%td 9:30 PM
-			%td 9:30 PM
-			%td 9:30 PM
-			%td 9:30 PM
-			%td 9:30 PM
-			%td 9:30 PM
-		%tr.second_row
-			%td 1:00 AM
-			%td 1:00 AM
-			%td 1:00 AM
-			%td 1:00 AM
-			%td 1:00 AM
-			%td 1:00 AM
-			%td 1:00 AM
-			
-		%tr.first_row
-			%td.label1.split{:rowspan => 4} Summerfields
-			%td.label2{:rowspan => 2} Lunch
-			%td X
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td 11:00 AM
-			%td X
-		%tr.second_row
-			%td X
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td X
-
-		%tr.first_row
-			%td.label2{:rowspan => 2} Dinner
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-		%tr.second_row
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-
-		%tr.first_row
-			%td.label1.split{:rowspan => 4} Wes Wings
-			%td.label2{:rowspan => 2} Lunch
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-		%tr.second_row
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-			%td 2:00 PM
-
-		%tr.first_row
-			%td.label2{:rowspan => 2} Dinner
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-			%td 5:30 PM
-		%tr.second_row
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			
-		%tr.first_row
-			%td.label1{:rowspan => 2} Pi Cafe
-			%td.label2{:rowspan => 2}
-			%td 1:00 PM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 1:00 PM
-		%tr.second_row
-			%td 6:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 9:00 PM
-			%td 5:00 PM
-			%td 6:00 PM
-
-		%tr.first_row
-			%td.label1{:rowspan => 2} Usdan Cafe
-			%td.label2{:rowspan => 2}
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-		%tr.second_row
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			
-		%tr.first_row
-			%td.label1{:rowspan => 2} Weshop
-			%td.label2{:rowspan => 2}
-			%td 12:00 PM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 2:00 PM
-			%td 2:00 PM
-		%tr.second_row
-			%td 12:00 AM
-			%td 12:00 AM
-			%td 12:00 AM
-			%td 12:00 AM
-			%td 12:00 AM
-			%td 6:00 PM
-			%td 6:00 PM
-
-		%tr.first_row
-			%td.label1{:rowspan => 2} Usdan DFC
-			%td.label2{:rowspan => 2}
-			%td X
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td 11:30 AM
-			%td X
-		%tr.second_row
-			%td X
-			%td 1:30 PM
-			%td 1:30 PM
-			%td 1:30 PM
-			%td 1:30 PM
-			%td 1:30 PM
-			%td X
-		
-		%tr.first_row
-			%td.label1{:rowspan => 2} Red & Black Cafe
-			%td.label2{:rowspan => 2}
-			%td 9:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 8:00 AM
-			%td 9:00 AM
-		%tr.second_row
-			%td 5:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 8:00 PM
-			%td 5:00 PM
-
-		
-
-
-
--# <table id="fallbreakschedule"><thead><tr><th></th>
--#   <th>Fri</th>
--#   <th>Sat</th>
--#   <th>Sun</th>
--#   <th>Mon</th>
--#   <th>Tues</th>
--#   <th>Wed</th>
--# </tr></thead><tbody><tr><td>Usdan Marketplace</td>
--#   <td>O</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>5-8</td>
--#   <td>O</td>
--# </tr><tr><td>Usdan Late Night</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>O</td>
--#   <td>O</td>
--# </tr><tr><td>Usdan Cafe</td>
--#   <td>8-5</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>O</td>
--#   <td>O</td>
--# </tr><tr><td>Usdan DFC</td>
--#   <td>O</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>O</td>
--# </tr><tr><td>Summerfields</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>5:30-9</td>
--#   <td>O</td>
--# </tr><tr><td>Pi Cafe</td>
--#   <td>8-2</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>O</td>
--# </tr><tr><td>Weshop</td>
--#   <td>2-6</td>
--#   <td>2-6</td>
--#   <td>2-6</td>
--#   <td>2-6</td>
--#   <td>O</td>
--#   <td>O</td>
--# </tr><tr><td>Wes Wings</td>
--#   <td>O</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>X</td>
--#   <td>5:30-8</td>
--#   <td>O</td>
--# </tr><tr><td>Red &amp; Black Cafe</td>
--#   <td>O</td>
--#   <td>O</td>
--#   <td>O</td>
--#   <td>O</td>
--#   <td>O</td>
--#   <td>O</td>
--# </tr></tbody></table>
-
--# X indicates being closed all day; O indicates normal hours.
--# <!--
--#                   | Friday     | Saturday   | Sunday     | Monday     | Tuesday | Wednesday
--# ------------------| ---------- | ---------- | ---------- | ---------- | ------- | ---------
--# Usdan Marketplace | O          | X          | X          | X          | 5-8     | O
--# Usdan Late Night  | X          | X          | X          | X          | O       | O
--# Usdan Cafe        | 8-5        | X          | X          | X          | O       | O
--# Usdan DFC         | O          | X          | X          | X          | X       | O
--# Summerfields      | X          | X          | X          | X          | 5:30-9  | O
--# Pi Cafe           | 8-2        | X          | X          | X          | X       | O
--# Weshop            | 2-6        | 2-6        | 2-6        | 2-6        | O       | O
--# Wes Wings         | O          | X          | X          | X          | 5:30-8  | O
--# Red & Black Cafe  | O          | O          | O          | O          | O       | O
--# -->
