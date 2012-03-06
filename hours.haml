@@ -64,6 +64,8 @@
 
 		var table = $("#new-hours");
 
+		if (!table) return;
+
 		for (var i = 0; i < infoKeys.length; i++) {
 			var key = infoKeys[i][0],
 				name = infoKeys[i][1],
